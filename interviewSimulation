@@ -1,0 +1,105 @@
+set.seed(1983)
+library(dplyr)
+
+gamerID <- 1:10000
+simulacion <- as.data.frame(gamerID)
+rm(gamerID)
+simulacion$age <- rnorm(10000,28,3)
+simulacion$age<- round(simulacion$age,0)
+
+simulacionQ1 <- simulacion[simulacion$age<=26,]
+simulacionQ2 <- simulacion[simulacion$age>26 & simulacion$age<=28,]
+simulacionQ3 <- simulacion[simulacion$age>28 & simulacion$age<=30,]
+simulacionQ4 <- simulacion[simulacion$age>30,]
+
+simulacionQ1$insDate<- rpois(nrow(simulacionQ1), 3)
+summary(simulacionQ1$insDate)
+simulacionQ1$insDate[(simulacionQ1$age-simulacionQ1$insDate)<15] <- 1
+
+simulacionQ2$insDate<- rpois(nrow(simulacionQ2), 4)
+summary(simulacionQ2$insDate)
+simulacionQ2$insDate[(simulacionQ2$age-simulacionQ2$insDate)<15] <- 1
+
+simulacionQ3$insDate<- rpois(nrow(simulacionQ3), 5)
+summary(simulacionQ3$insDate)
+simulacionQ3$insDate[(simulacionQ3$age-simulacionQ3$insDate)<15] <- 1
+
+simulacionQ4$insDate<- rpois(nrow(simulacionQ4), 6)
+summary(simulacionQ4$insDate)
+simulacionQ4$insDate[(simulacionQ4$age-simulacionQ4$insDate)<15] <- 1
+
+simulacion<-rbind(simulacionQ1, simulacionQ2,simulacionQ3, simulacionQ4)
+
+rm(simulacionQ1, simulacionQ2,simulacionQ3, simulacionQ4)
+
+summary(simulacion$insDate)
+simulacion$startUplayYear <- 2016-simulacion$insDate
+simulacion$insDate[ simulacion$startUplayYear <2009]<-7
+simulacion$startUplayYear[ simulacion$startUplayYear <2009]<-2009
+
+simulacion$gender<- rbinom(nrow(simulacion),size = 1,prob = 0.64)
+simulacion$gender<- ifelse(simulacion$gender==1,"male","female")
+simulacion$gender<- as.factor(simulacion$gender)
+
+simulacionQ1 <- simulacion[simulacion$insDate<=4,]
+simulacionQ234 <- simulacion[simulacion$insDate>4,]
+
+simulacionQ1$avgTimePerWeek <- rnorm(nrow(simulacionQ1),mean = 5,sd = 1.5)
+simulacionQ234$avgTimePerWeek <- rnorm(nrow(simulacionQ234),mean = 6.5,sd = 1)
+
+simulacion<-rbind(simulacionQ1,simulacionQ234)
+simulacion$avgTimePerWeek[simulacion$gender=="female"]<-simulacion$avgTimePerWeek[simulacion$gender=="female"]*0.8
+simulacion$avgTimePerWeek<-round(simulacion$avgTimePerWeek,1)
+rm(simulacionQ234,simulacionQ1)
+
+group_by(simulacion,gender) %>% summarize(avg=mean(avgTimePerWeek))
+
+simulacionH<- simulacion[simulacion$insDate>mean(simulacion$insDate),]
+simulacionL<- simulacion[!( simulacion$insDate>mean(simulacion$insDate)),]
+
+hQ3<-quantile(simulacionH$avgTimePerWeek)[4]
+simulacionHH<- simulacionH[simulacionH$avgTimePerWeek>=hQ3,]
+simulacionHL<- simulacionH[!simulacionH$avgTimePerWeek>=hQ3,]
+
+simulacionHH$level <- rnorm(nrow(simulacionHH), 6000,380)
+simulacionHH$level[simulacionHH$level>7200]<-7200
+
+simulacionHL$level <- rnorm(nrow(simulacionHL), 4800,350)
+simulacionHL$level[simulacionHL$level>6000]<-6000
+
+lQ1 <- quantile(simulacionL$avgTimePerWeek)[2]
+simulacionLH<-simulacionL[simulacionL$avgTimePerWeek>lQ1,]
+simulacionLL<-simulacionL[!simulacionL$avgTimePerWeek>lQ1,]
+
+simulacionLH$level <- rnorm(nrow(simulacionLH), 2400,350)
+simulacionLH$level[simulacionLH$level>4800]<-4800
+
+simulacionLL$level <- rnorm(nrow(simulacionLL), 1200,400)
+simulacionLL$level[simulacionLL$level<0]<-50
+
+simulacion<- rbind(simulacionHH,simulacionHL,simulacionLH,simulacionLL)
+simulacion$level<-round(simulacion$level,0)
+
+rm(simulacionHH,simulacionHL,simulacionLH,simulacionLL,simulacionH,simulacionL,hQ3,lQ1)
+
+simulacionFA <- simulacion[simulacion$insDate<1,]
+simulacionNFA <- simulacion[!simulacion$insDate<1,]
+simulacionFA$friends <- rpois(nrow(simulacionFA),lambda = 1)
+simulacionNFA$friends <- rpois(nrow(simulacionNFA),lambda = 4)
+simulacionNFA$friends[simulacionNFA$friends==0]<-1
+
+simulacion <- rbind(simulacionNFA,simulacionFA)
+rm(simulacionNFA,simulacionFA)
+
+simulacion$region <- runif(nrow(simulacion),min = 0,1)
+simulacion$region <- round(simulacion$region,2)
+simulacion$region <- ifelse(simulacion$region<=0.2,"N. America",
+                            ifelse(simulacion$region>0.2  & simulacion$region<=0.3 ,"S. America",
+                                   ifelse(simulacion$region>0.3 & simulacion$region<=0.5 ,"Europe",
+                                          ifelse(simulacion$region>0.5 & simulacion$region<=0.8 ,"Asia",
+                                                 ifelse(simulacion$region>0.8 & simulacion$region<=0.9 ,"Australia",
+                                                        ifelse(simulacion$region>0.9, "Africa","N, America")
+                                                 )))))
+
+write.table(simulacion,file='ubisoft.txt', row.names = F)
+
