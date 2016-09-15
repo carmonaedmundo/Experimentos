@@ -1,0 +1,71 @@
+podría obtener todas las infracciones de trnasito usando la siguientes funciones
+library(XML)
+u <- "http://www.finanzas.df.gob.mx/sma/detallePlaca.php?placa=881xjh"
+dat <- readHTMLTable(u)
+doc = htmlParse(u)
+tableNodes <- getNodeSet(doc,"//table")
+
+La URL es  http://www.finanzas.df.gob.mx/sma/detallePlaca.php?placa=000XXX
+donde;
+000XXX es el ID de la placa
+
+*****************
+
+Bitacora de herramientas
+
+Use Coursera para aprender R y data science
+use R como programa estadistico
+use stackoverflow para solucionar preguntas y respuestas
+use google maps para definir el poligono de las zonas y hacer pruebas de la funcion coordinateIsInsidePolygon
+
+Los datos de los accidentes viales los encontré en 
+http://www.datosabiertos.df.gob.mx/sigdata/index.php/Publicacion/index
+apartado mobilidad
+URL = http://www.datosabiertos.df.gob.mx/sigdata/index.php/Publicacion/detalle_dataset/7
+fecha de toma 29 de Octubre del 2015
+
+El primer problema fue encontrar un punto GPS en una zonas
+utilice un método de localización basado en el angulo generado por los arcos tangentes de dos puntos del poligono, se suman todos y si el valor absoluto del angulo es mayor a PI entonces esta dentro del poligono
+la funcion coordinateIsInsidePolygon la obtuve de este post http://stackoverflow.com/questions/4287780/detecting-whether-a-gps-coordinate-falls-within-a-polygon-on-a-map
+
+##Ejemplos de poligonos
+source("PoCFunctions.R")
+poligono <- read.csv("poligono.csv")
+#Dentro
+coordinateIsInsidePolygon(19.432533, -99.168094,poligono$lat,poligono$long) 
+#Fuera
+coordinateIsInsidePolygon(19.429579, -99.160610,poligono$lat,poligono$long) 
+
+para calcular la cuadricula utilice google earth. hice un poligono de 4 lados y obtube las siguiente tabla
+
+1,1 --> lqt=  19°15'59.79"N; long = 99°15'57.85"W
+1,2 --> lat = 19°29'58.82"N ; Long= 99°15'57.85"W
+2,1 --> lqt=  19°15'59.79"N;  long = 98°56'1.40"W
+2,2 --> lqt=  19°29'58.82"N; long = 98°56'1.40"W
+
+usando la página https://www.fcc.gov/encyclopedia/degrees-minutes-seconds-tofrom-decimal-degrees calculé el numero decimal
+p1,1 -> lat=19.266608, long->99.266069
+p2,2 -> lat=19.499672, long-> 98.933722
+
+utilice excel para obtener los percentiles de las latitudes y longitude
+exporte el archivo a csv para mejorar la lectura
+Fallo por que necesito una relación tipo zona1, lat1,long1, lat2, lon2
+
+haré un progrmama en R para resolver la base de datos
+
+generé el método createGrid para crear una cuadricula de puntos gps.
+
+source("PoCFunctions.R")
+createGrid(19.266608,99.266069,19.499672,98.933722)
+
+la cuadricula más la funcion de coordinateIsInsidePolygon, me indican en que punto fue el accidente
+una vez que obtenga las coordenadas de los bares podré hacer la relación entre el numero total de accidentes y el numero total de bares en una zona1
+
+los datos geograficos de los establecimientos se pueden encontrar en las base de datos del Inegi
+http://www.inegi.org.mx/est/contenidos/proyectos/denue/presentacion.aspx
+
+desarrollé la funcion getZones la cual crea un arreglo con la zona para un poligono de gps
+desarrollé la función createKML la cual acepta un nombre, y un arreglo de lat y long, esta función entrega un archivo KML con el poligo del arreglo
+
+
+Ideas para 
